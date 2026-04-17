@@ -98,3 +98,29 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          example: 1500.99
+        category:
+          type: string
+          example: electronica
+        stock:
+          type: integer
+          example: 50
+      example:
+        id: 64a1b2c3d4e5f6789012abcd
+        name: Laptop Dell XPS 15
+        description: Laptop de alto rendimiento
+        price: 1500.99
+        category: electronica
+        stock: 50
