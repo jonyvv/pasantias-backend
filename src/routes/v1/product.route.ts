@@ -3,49 +3,26 @@ import { validate } from '../../modules/validate';
 import { auth } from '../../modules/auth';
 import { productController, productValidation } from '../../modules/product';
  
-/**
- * PASO 7: Las Rutas.
- *
- * Este archivo define los endpoints HTTP del módulo product.
- * Sigue el mismo patrón que user.route.ts:
- *
- *   router.route('/path')
- *     .method1(middleware1, middleware2, controller)
- *     .method2(middleware1, middleware2, controller)
- *
- * Los middlewares se ejecutan en orden de izquierda a derecha:
- *   1. auth('permiso') - Verifica JWT y permisos del usuario
- *   2. validate(schema) - Valida body/params/query con Joi
- *   3. controller - Procesa la request y envía respuesta
- *
- * REGLAS DE PERMISOS según el enunciado:
- *   - GET (listar y obtener): cualquier usuario logueado → auth()
- *   - POST, PATCH, DELETE: solo admins → auth('manageProducts')
- *
- * NOTA: Para que auth('manageProducts') funcione, hay que agregar
- * 'manageProducts' a los derechos del rol 'admin' en src/config/roles.ts:
- *
- */
  
 const router: Router = express.Router();
- 
+
 router
   .route('/')
-  .post(auth('manageProducts'), validate(productValidation.createProduct), productController.createProduct)
+  // Cualquier usuario logueado puede ver la lista
+  .get(auth(), validate(productValidation.getProducts), productController.getProducts)
+  // Solo admins pueden crear
+  .post(auth('manageProducts'), validate(productValidation.createProduct), productController.createProduct);
 
-  .get(auth(), validate(productValidation.getProducts), productController.getProducts);
- 
 router
   .route('/:productId')
+  // Cualquier usuario logueado puede ver un producto
   .get(auth(), validate(productValidation.getProduct), productController.getProduct)
-
+  // Solo admins pueden editar o borrar
   .patch(auth('manageProducts'), validate(productValidation.updateProduct), productController.updateProduct)
-
   .delete(auth('manageProducts'), validate(productValidation.deleteProduct), productController.deleteProduct);
- 
- 
+
 export default router;
- 
+
 /**
  * @swagger
  * tags:
