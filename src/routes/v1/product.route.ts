@@ -2,100 +2,63 @@ import express, { Router } from 'express';
 import { validate } from '../../modules/validate';
 import { auth } from '../../modules/auth';
 import { productController, productValidation } from '../../modules/product';
-
+ 
+/**
+ * PASO 7: Las Rutas.
+ *
+ * Este archivo define los endpoints HTTP del módulo product.
+ * Sigue el mismo patrón que user.route.ts:
+ *
+ *   router.route('/path')
+ *     .method1(middleware1, middleware2, controller)
+ *     .method2(middleware1, middleware2, controller)
+ *
+ * Los middlewares se ejecutan en orden de izquierda a derecha:
+ *   1. auth('permiso') - Verifica JWT y permisos del usuario
+ *   2. validate(schema) - Valida body/params/query con Joi
+ *   3. controller - Procesa la request y envía respuesta
+ *
+ * REGLAS DE PERMISOS según el enunciado:
+ *   - GET (listar y obtener): cualquier usuario logueado → auth()
+ *   - POST, PATCH, DELETE: solo admins → auth('manageProducts')
+ *
+ * NOTA: Para que auth('manageProducts') funcione, hay que agregar
+ * 'manageProducts' a los derechos del rol 'admin' en src/config/roles.ts:
+ *
+ */
+ 
 const router: Router = express.Router();
-
+ 
 router
   .route('/')
-  // cualquier rol puede ver
-  .get(auth(), validate(productValidation.getProducts), productController.getProducts)
-  // 'manageProducts' = solo admins
-  .post(auth('manageProducts'), validate(productValidation.createProduct), productController.createProduct);
+  .post(auth('manageProducts'), validate(productValidation.createProduct), productController.createProduct)
 
+  .get(auth(), validate(productValidation.getProducts), productController.getProducts);
+ 
 router
   .route('/:productId')
   .get(auth(), validate(productValidation.getProduct), productController.getProduct)
+
   .patch(auth('manageProducts'), validate(productValidation.updateProduct), productController.updateProduct)
+
   .delete(auth('manageProducts'), validate(productValidation.deleteProduct), productController.deleteProduct);
-
+ 
+ 
 export default router;
-
+ 
 /**
  * @swagger
  * tags:
  *   name: Products
- *   description: Product management and retrieval
+ *   description: Gestión de productos del catálogo
  */
-
+ 
 /**
  * @swagger
  * /products:
- *   get:
- *     summary: Get all products
- *     description: Any logged in user can retrieve products. Supports pagination and category filter.
- *     tags: [Products]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *         description: Filter by category (e.g. electronica, ropa)
- *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *         description: Sort by field in format field:asc|desc (e.g. price:asc)
- *       - in: query
- *         name: projectBy
- *         schema:
- *           type: string
- *         description: Project fields in format field:hide|include (e.g. description:hide)
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *         default: 10
- *         description: Maximum number of products per page
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           minimum: 1
- *         default: 1
- *         description: Page number
- *     responses:
- *       "200":
- *         description: OK
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 results:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Product'
- *                 page:
- *                   type: integer
- *                   example: 1
- *                 limit:
- *                   type: integer
- *                   example: 10
- *                 totalPages:
- *                   type: integer
- *                   example: 3
- *                 totalResults:
- *                   type: integer
- *                   example: 25
- *       "401":
- *         $ref: '#/components/responses/Unauthorized'
- *
  *   post:
- *     summary: Create a product
- *     description: Only admins can create products.
+ *     summary: Crear un producto
+ *     description: Solo los administradores pueden crear productos.
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -114,40 +77,125 @@ export default router;
  *             properties:
  *               name:
  *                 type: string
- *                 example: Laptop Dell XPS 15
+ *                 description: Nombre del producto
  *               description:
  *                 type: string
- *                 example: Laptop de alto rendimiento con pantalla OLED
+ *                 description: Descripción detallada del producto
  *               price:
  *                 type: number
  *                 minimum: 0
- *                 example: 1500.99
+ *                 description: Precio del producto (no puede ser negativo)
  *               category:
  *                 type: string
- *                 example: electronica
+ *                 description: Categoría del producto (se normaliza a minúsculas)
  *               stock:
  *                 type: integer
  *                 minimum: 0
- *                 example: 50
+ *                 description: Cantidad disponible en inventario
+ *             example:
+ *               name: Laptop Gaming Pro
+ *               description: Laptop de alto rendimiento para gaming profesional
+ *               price: 1299.99
+ *               category: electronica
+ *               stock: 50
  *     responses:
  *       "201":
- *         description: Created
+ *         description: Producto creado exitosamente
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Product'
+ *       "400":
+ *         description: Datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
+ *
+ *   get:
+ *     summary: Listar todos los productos
+ *     description: Todos los usuarios autenticados pueden ver el catálogo de productos.
+ *       Soporta paginación, filtros por nombre y categoría, y ordenamiento.
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Filtrar por nombre de producto (coincidencia exacta)
+ *         example: Laptop Gaming Pro
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filtrar por categoría del producto
+ *         example: electronica
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: "Ordenar por campo. Formato: campo:asc o campo:desc. Múltiples: price:asc,name:desc"
+ *         example: price:asc
+ *       - in: query
+ *         name: projectBy
+ *         schema:
+ *           type: string
+ *         description: "Proyección de campos. Formato: campo:hide o campo:include"
+ *         example: description:hide
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
+ *         description: Cantidad máxima de productos por página
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Número de página
+ *     responses:
+ *       "200":
+ *         description: Lista paginada de productos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 page:
+ *                   type: integer
+ *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 5
+ *                 totalResults:
+ *                   type: integer
+ *                   example: 48
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
  */
-
+ 
 /**
  * @swagger
  * /products/{id}:
  *   get:
- *     summary: Get a product by ID
- *     description: Any logged in user can retrieve a single product.
+ *     summary: Obtener un producto por ID
+ *     description: Todos los usuarios autenticados pueden ver un producto específico.
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -157,10 +205,11 @@ export default router;
  *         required: true
  *         schema:
  *           type: string
- *         description: Product ID (MongoDB ObjectId)
+ *         description: ID del producto (MongoDB ObjectId)
+ *         example: 5ebac534954b54139806c112
  *     responses:
  *       "200":
- *         description: OK
+ *         description: Producto encontrado
  *         content:
  *           application/json:
  *             schema:
@@ -171,8 +220,9 @@ export default router;
  *         $ref: '#/components/responses/NotFound'
  *
  *   patch:
- *     summary: Update a product
- *     description: Only admins can update products. Send only the fields you want to change.
+ *     summary: Actualizar un producto
+ *     description: Solo los administradores pueden modificar productos.
+ *       Se pueden actualizar uno o más campos parcialmente (PATCH).
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -182,7 +232,8 @@ export default router;
  *         required: true
  *         schema:
  *           type: string
- *         description: Product ID (MongoDB ObjectId)
+ *         description: ID del producto a actualizar
+ *         example: 5ebac534954b54139806c112
  *     requestBody:
  *       required: true
  *       content:
@@ -192,28 +243,33 @@ export default router;
  *             properties:
  *               name:
  *                 type: string
- *                 example: Laptop Dell XPS 15 Updated
  *               description:
  *                 type: string
- *                 example: Nueva descripción actualizada
  *               price:
  *                 type: number
  *                 minimum: 0
- *                 example: 1299.99
  *               category:
  *                 type: string
- *                 example: electronica
  *               stock:
  *                 type: integer
  *                 minimum: 0
- *                 example: 30
+ *             minProperties: 1
+ *             example:
+ *               price: 999.99
+ *               stock: 35
  *     responses:
  *       "200":
- *         description: OK
+ *         description: Producto actualizado exitosamente
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Product'
+ *       "400":
+ *         description: Datos inválidos o body vacío
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
@@ -222,8 +278,8 @@ export default router;
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a product
- *     description: Only admins can delete products.
+ *     summary: Eliminar un producto
+ *     description: Solo los administradores pueden eliminar productos.
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -233,10 +289,11 @@ export default router;
  *         required: true
  *         schema:
  *           type: string
- *         description: Product ID (MongoDB ObjectId)
+ *         description: ID del producto a eliminar
+ *         example: 5ebac534954b54139806c112
  *     responses:
  *       "204":
- *         description: No content
+ *         description: Producto eliminado exitosamente (sin contenido en respuesta)
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
