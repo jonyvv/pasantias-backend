@@ -18,3 +18,5 @@ export interface IProductModel extends Model<IProductDoc> {
 export type UpdateProductBody = Partial<IProduct>;
 
 export type NewProduct = IProduct;
+
+export {mongoose};
