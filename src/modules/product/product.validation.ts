@@ -51,6 +51,7 @@ const createProductBody: Record<keyof NewProduct, any> = {
    */
  
   stock: Joi.number().required().min(0).integer(),
+  imageUrl: Joi.string(),
   /**
    * .integer() asegura que el stock sea un número entero (no 2.5 unidades).
    */
@@ -154,6 +155,7 @@ export const updateProduct = {
       price: Joi.number().min(0),
       category: Joi.string(),
       stock: Joi.number().min(0).integer(),
+      imageUrl: Joi.string(),
     })
     .min(1),
     /**
@@ -161,6 +163,17 @@ export const updateProduct = {
      * Pero al menos uno debe estar presente (.min(1)).
      * Si el cliente manda solo { price: 299.99 }, solo se actualiza el precio.
      */
+};
+
+export const checkoutProducts = {
+  body: Joi.object().keys({
+    items: Joi.array().items(
+      Joi.object().keys({
+        productId: Joi.string().required().custom(objectId),
+        quantity: Joi.number().required().integer().min(1),
+      })
+    ).min(1).required(),
+  }),
 };
  
 /**

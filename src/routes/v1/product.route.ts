@@ -2,6 +2,7 @@ import express, { Router } from 'express';
 import { validate } from '../../modules/validate';
 import { auth } from '../../modules/auth';
 import { productController, productValidation } from '../../modules/product';
+import { appendProductImageUrl, uploadProductImage } from '../../modules/product/product.upload';
  
  
 const router: Router = express.Router();
@@ -11,14 +12,30 @@ router
   // Cualquier usuario logueado puede ver la lista
   .get(auth(), validate(productValidation.getProducts), productController.getProducts)
   // Solo admins pueden crear
-  .post(auth('manageProducts'), validate(productValidation.createProduct), productController.createProduct);
+  .post(
+    auth('manageProducts'),
+    uploadProductImage.single('image'),
+    appendProductImageUrl,
+    validate(productValidation.createProduct),
+    productController.createProduct
+  );
+
+router
+  .route('/checkout')
+  .post(auth(), validate(productValidation.checkoutProducts), productController.checkoutProducts);
 
 router
   .route('/:productId')
   // Cualquier usuario logueado puede ver un producto
   .get(auth(), validate(productValidation.getProduct), productController.getProduct)
   // Solo admins pueden editar o borrar
-  .patch(auth('manageProducts'), validate(productValidation.updateProduct), productController.updateProduct)
+  .patch(
+    auth('manageProducts'),
+    uploadProductImage.single('image'),
+    appendProductImageUrl,
+    validate(productValidation.updateProduct),
+    productController.updateProduct
+  )
   .delete(auth('manageProducts'), validate(productValidation.deleteProduct), productController.deleteProduct);
 
 export default router;

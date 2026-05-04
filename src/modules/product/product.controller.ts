@@ -67,6 +67,9 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
  */
 export const getProducts = catchAsync(async (req: Request, res: Response) => {
   const filter = pick(req.query, ['name', 'category']);
+  if (typeof filter['name'] === 'string' && filter['name']) {
+    filter['name'] = new RegExp(filter['name'], 'i');
+  }
   /**
    * filter = { category: 'electronica' } si el request fue GET /products?category=electronica
    * Este objeto se pasa directamente a Product.paginate() como el filtro MongoDB.
@@ -140,6 +143,11 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
     );
     res.send(product);
   }
+});
+
+export const checkoutProducts = catchAsync(async (req: Request, res: Response) => {
+  const products = await productService.checkoutProducts(req.body.items);
+  res.send({ products });
 });
  
 /**

@@ -586,6 +586,23 @@ describe('User routes', () => {
         .expect(httpStatus.OK);
     });
 
+    test('should return 200 and successfully update user role if admin is updating another user', async () => {
+      await insertUsers([userOne, admin]);
+      const updateBody = { role: 'admin' };
+
+      const res = await request(app)
+        .patch(`/v1/users/${userOne._id}`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send(updateBody)
+        .expect(httpStatus.OK);
+
+      expect(res.body.role).toBe('admin');
+
+      const dbUser = await User.findById(userOne._id);
+      expect(dbUser).toBeDefined();
+      expect(dbUser?.role).toBe('admin');
+    });
+
     test('should return 404 if admin is updating another user that is not found', async () => {
       await insertUsers([admin]);
       const updateBody = { name: faker.name.findName() };
@@ -667,6 +684,17 @@ describe('User routes', () => {
       await request(app)
         .patch(`/v1/users/${userOne._id}`)
         .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .send(updateBody)
+        .expect(httpStatus.BAD_REQUEST);
+    });
+
+    test('should return 400 if role is neither user nor admin', async () => {
+      await insertUsers([admin, userOne]);
+      const updateBody = { role: 'invalid' };
+
+      await request(app)
+        .patch(`/v1/users/${userOne._id}`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
         .send(updateBody)
         .expect(httpStatus.BAD_REQUEST);
     });

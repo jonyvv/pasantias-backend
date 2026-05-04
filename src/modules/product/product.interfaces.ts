@@ -12,6 +12,7 @@ export interface IProduct {
   price: number;
   category: string;
   stock: number;
+  imageUrl?: string;
 }
  
 /**

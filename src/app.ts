@@ -21,7 +21,9 @@ if (config.env !== 'test') {
 }
 
 // set security HTTP headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 // enable cors
 app.use(cors());
@@ -39,6 +41,9 @@ app.use(ExpressMongoSanitize());
 
 // gzip compression
 app.use(compression());
+
+// static uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // jwt authentication
 app.use(passport.initialize());

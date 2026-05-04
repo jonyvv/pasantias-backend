@@ -126,6 +126,30 @@ export const updateProductById = async (
   await product.save();
   return product;
 };
+
+export const checkoutProducts = async (
+  items: { productId: string; quantity: number }[]
+): Promise<IProductDoc[]> => {
+  const updatedProducts: IProductDoc[] = [];
+
+  for (const item of items) {
+    const product = await getProductById(new mongoose.Types.ObjectId(item.productId));
+
+    if (!product) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Producto no encontrado');
+    }
+
+    if (product.stock < item.quantity) {
+      throw new ApiError(httpStatus.BAD_REQUEST, `Stock insuficiente para ${product.name}`);
+    }
+
+    product.stock -= item.quantity;
+    await product.save();
+    updatedProducts.push(product);
+  }
+
+  return updatedProducts;
+};
  
 /**
  * deleteProductById
