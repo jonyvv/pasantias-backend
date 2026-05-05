@@ -46,6 +46,64 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
       type: Boolean,
       default: false,
     },
+    purchaseHistory: {
+      type: [
+        {
+          items: {
+            type: [
+              {
+                productId: {
+                  type: mongoose.Schema.Types.ObjectId,
+                  ref: 'Product',
+                  required: true,
+                },
+                productName: {
+                  type: String,
+                  required: true,
+                  trim: true,
+                },
+                category: {
+                  type: String,
+                  required: true,
+                  trim: true,
+                },
+                quantity: {
+                  type: Number,
+                  required: true,
+                  min: 1,
+                },
+                unitPrice: {
+                  type: Number,
+                  required: true,
+                  min: 0,
+                },
+                subtotal: {
+                  type: Number,
+                  required: true,
+                  min: 0,
+                },
+                imageUrl: {
+                  type: String,
+                  trim: true,
+                },
+              },
+            ],
+            default: [],
+          },
+          totalAmount: {
+            type: Number,
+            required: true,
+            min: 0,
+          },
+          purchasedAt: {
+            type: Date,
+            required: true,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

@@ -1,6 +1,7 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import Product from './product.model';
+import User from '../user/user.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewProduct, UpdateProductBody, IProductDoc } from './product.interfaces';
@@ -128,9 +129,25 @@ export const updateProductById = async (
 };
 
 export const checkoutProducts = async (
-  items: { productId: string; quantity: number }[]
+  items: { productId: string; quantity: number }[],
+  userId: mongoose.Types.ObjectId
 ): Promise<IProductDoc[]> => {
   const updatedProducts: IProductDoc[] = [];
+  const purchaseItems: {
+    productId: mongoose.Types.ObjectId;
+    productName: string;
+    category: string;
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
+    imageUrl?: string;
+  }[] = [];
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
 
   for (const item of items) {
     const product = await getProductById(new mongoose.Types.ObjectId(item.productId));
@@ -146,7 +163,23 @@ export const checkoutProducts = async (
     product.stock -= item.quantity;
     await product.save();
     updatedProducts.push(product);
+    purchaseItems.push({
+      productId: product._id,
+      productName: product.name,
+      category: product.category,
+      quantity: item.quantity,
+      unitPrice: product.price,
+      subtotal: product.price * item.quantity,
+      ...(product.imageUrl ? { imageUrl: product.imageUrl } : {}),
+    });
   }
+
+  user.purchaseHistory.push({
+    items: purchaseItems,
+    totalAmount: purchaseItems.reduce((total, item) => total + item.subtotal, 0),
+    purchasedAt: new Date(),
+  });
+  await user.save();
 
   return updatedProducts;
 };

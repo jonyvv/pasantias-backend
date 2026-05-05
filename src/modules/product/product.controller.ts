@@ -146,7 +146,7 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const checkoutProducts = catchAsync(async (req: Request, res: Response) => {
-  const products = await productService.checkoutProducts(req.body.items);
+  const products = await productService.checkoutProducts(req.body.items, req.user.id);
   res.send({ products });
 });
  
